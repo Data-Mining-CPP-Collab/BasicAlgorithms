@@ -46,6 +46,16 @@ def kmeans(data, k, columns, centers=None, n=None, eps=None):
     # Return the list of cluster centers
     return center_lists
 
+# Distance function to calculate distance between a center and a data instance
+def dist(center, instance, columns):
+    # Extract the values for the given columns from the instance
+    instance_vals = [instance[col] for col in columns]
+    
+    # Calculate Euclidean distance between center and instance values
+    distance = np.sqrt(sum((c - i) ** 2 for c, i in zip(center, instance_vals)))
+    
+    return distance
+
 # DO NOT CHANGE THE FOLLOWING LINE
 def dbscan(data, columns, eps, min_samples):
 # DO NOT CHANGE THE PRECEDING LINE
