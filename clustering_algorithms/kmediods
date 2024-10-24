@@ -1,0 +1,97 @@
+import numpy as np
+import random
+import sys
+
+# DO NOT CHANGE THE FOLLOWING LINE
+def kmedoids(data, k, distance, centers=None, n=None, eps=None):
+# DO NOT CHANGE THE PRECEDING LINE
+    """
+    Perform k-medoids clustering on the dataset.
+
+    Parameters:
+    data (np.ndarray or pd.DataFrame): The dataset.
+    k (int): The number of clusters.
+    distance (callable): A distance function to calculate distance between two points.
+    centers (list): Optional, a list of initial medoid indices.
+    n (int): The maximum number of iterations.
+    eps (float): Minimum convergence threshold.
+
+    Returns:
+    list: List of indices representing the medoids.
+    """
+    
+    # Convert DataFrame to NumPy array if necessary
+    if isinstance(data, pd.DataFrame):
+        data = data.to_numpy()
+
+    # Step 1: Initialize parameters
+    if n is None:
+        n = 100  # Default number of iterations
+    if eps is None:
+        eps = 1e-4  # Default convergence threshold
+    
+    # Step 2: Initialize medoids
+    if centers is None:
+        # Randomly choose k distinct points from data as the initial medoids
+        medoid_indices = np.random.choice(len(data), size=k, replace=False)
+    else:
+        # If medoids are provided, ensure they are numpy arrays
+        medoid_indices = np.array(centers)
+    
+    medoids = data[medoid_indices]  # Initial medoids
+
+    # Step 3: Iterate until convergence or maximum number of iterations
+    for iteration in range(n):
+        # Step 3a: Assign each data point to the nearest medoid
+        clusters = {i: [] for i in range(k)}  # Dictionary to hold clusters
+
+        for idx, point in enumerate(data):
+            # Calculate the distance from the point to each medoid
+            distances = [distance(point, medoid) for medoid in medoids]
+            # Find the index of the nearest medoid
+            closest_medoid_index = np.argmin(distances)
+            # Assign the point to the nearest medoid
+            clusters[closest_medoid_index].append(idx)
+        
+        # Step 3b: Recalculate medoids
+        new_medoids = np.copy(medoids)
+        for i in range(k):
+            cluster_points = data[clusters[i]]  # Points in the current cluster
+            if len(cluster_points) > 0:
+                # Calculate the total distance between every point and every other point in the cluster
+                distances = np.zeros(len(cluster_points))
+                for j, candidate_medoid in enumerate(cluster_points):
+                    distances[j] = np.sum([distance(candidate_medoid, other) for other in cluster_points])
+                
+                # Find the point with the minimum total distance in the cluster
+                new_medoid_idx = clusters[i][np.argmin(distances)]
+                new_medoids[i] = data[new_medoid_idx]
+
+        # Step 3c: Check for convergence (if medoids don't change much)
+        if np.all(np.abs(new_medoids - medoids) < eps):
+            break
+        
+        # Update medoids
+        medoids = new_medoids
+
+    # Return the indices of the medoids
+    medoid_indices = [np.where((data == medoid).all(axis=1))[0][0] for medoid in medoids]
+    return medoid_indices
+
+
+# Example distance function: Euclidean distance
+def euclidean_distance(point1, point2):
+    return np.sqrt(np.sum((point1 - point2) ** 2))
+
+# Example usage
+if __name__ == "__main__":
+    # Test data: Random points in 2D space
+    data = np.random.rand(100, 2)
+
+    # Run k-medoids clustering with k=3 clusters
+    medoids = kmedoids(data, k=3, distance=euclidean_distance)
+
+    # Output medoid indices
+    print("Medoid indices:", medoids)
+    # Output the medoid points
+    print("Medoid points:", data[medoids])
