@@ -19,6 +19,9 @@ def kmeans(data, k, columns, centers=None, n=None, eps=None):
         eps = 1e-4
     
     # Step 1: Extract columns used for clustering
+    # Ensure data is a DataFrame and extract only the columns used for clustering
+    if not isinstance(data, pd.DataFrame):
+        data = pd.DataFrame(data, columns=columns)
     data = data[columns].values  # Extract only the columns used for clustering
     
     # Step 2: Initialize centroids

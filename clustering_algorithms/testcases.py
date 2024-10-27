@@ -55,7 +55,7 @@ def lloyds_testcase(data, n, visualize=True):
     print("running test:", LLOYD_TESTS[n])
     if n == 0:
         rdata = [[name, random.random()*random.random(), random.random()*0.45 + 0.2] for i,name in enumerate("abcdefghijklmnopqrstuvxyz")]
-        clusters = clustering.lloyds(data, 3, [1,2], n=10)
+        clusters = clustering.kmeans(data, 3, [1,2], n=10)
         if visualize:
             plot(rdata, clusters, 1, 2, scale=(0,1))
         show_centers(clusters)
@@ -63,13 +63,13 @@ def lloyds_testcase(data, n, visualize=True):
         centers = [[0.1,0.05], [0.8,0.9]]
         if visualize:
             plot(data, centers, 3, 4, scale=(0,1))
-        centers = clustering.lloyds(data, 2, [3,4], centers=centers, n=1)
+        centers = clustering.kmeans(data, 2, [3,4], centers=centers, n=1)
         if visualize:
             plot(data, centers, 3, 4, scale=(0,1))
         show_centers(centers)
     elif n == 2:
         centers = [[0.1,0.05], [0.8,0.9]]
-        centers = clustering.lloyds(data, 2, [3,4], centers=centers, n=2)
+        centers = clustering.kmeans(data, 2, [3,4], centers=centers, n=2)
         if visualize:
             plot(data, centers, 3, 4, scale=(0,1))
         show_centers(centers)
@@ -77,31 +77,31 @@ def lloyds_testcase(data, n, visualize=True):
         centers = [[0.5,0.1], [0.1,0.1], [0.8,0.4]]
         if visualize:
             plot(data, centers, 1, 2, scale=(0,1))
-        centers = clustering.lloyds(data, 3, [1,2], centers=centers, n=1)
+        centers = clustering.kmeans(data, 3, [1,2], centers=centers, n=1)
         if visualize:
             plot(data, centers, 1, 2, scale=(0,1))
         show_centers(centers)
     elif n == 4:
         centers = [[0.5,0.1], [0.1,0.1], [0.8,0.4]]
-        centers = clustering.lloyds(data, 3, [1,2], centers=centers, n=5)
+        centers = clustering.kmeans(data, 3, [1,2], centers=centers, n=5)
         if visualize:
             plot(data, centers, 1, 2, scale=(0,1))
         show_centers(centers)
     elif n == 5:
-        centers = clustering.lloyds(data, 2, ["x3","x4"], eps=0.01)
+        centers = clustering.kmeans(data, 2, ["x3","x4"], eps=0.01)
         if visualize:
             plot(data, centers, "x3", "x4", scale=(0,1))
         show_centers(centers)
     elif n == 6:
-        centers = clustering.lloyds(data, 3, ["x1","x2"], eps=0.01)
+        centers = clustering.kmeans(data, 3, ["x1","x2"], eps=0.01)
         if visualize:
             plot(data, centers, "x1", "x2", scale=(0,1))
         show_centers(centers)
     elif n == 7:
-        centers = clustering.lloyds(data, 6, ["x1","x2", 3, "x4"], n=10)
+        centers = clustering.kmeans(data, 6, ["x1","x2", 3, "x4"], n=10)
         show_centers(centers)
     elif n == 8:
-        centers = clustering.lloyds(data, 2, ["x1","x2"], n=5)
+        centers = clustering.kmeans(data, 2, ["x1","x2"], n=5)
         if visualize:
             plot(data, centers, "x1", "x2", scale=(0,1))
         show_centers(centers)
