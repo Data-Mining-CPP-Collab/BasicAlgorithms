@@ -104,6 +104,7 @@ def dbscan(data, columns, eps, min_samples):
                 queue.extend(new_neighbors)
 
     if isinstance(data, pd.DataFrame):  # Convert DataFrame to NumPy array if necessary
+        new_df = data.copy()
         data = data[columns].to_numpy()
 
     labels = np.zeros(data.shape[0])  # 0 means unclassified, -1 means noise
@@ -120,7 +121,17 @@ def dbscan(data, columns, eps, min_samples):
             cluster_id += 1
             expand_cluster(data, labels, i, neighbors, cluster_id, eps, min_samples)
 
-    return labels
+    
+
+    # convert the labels into a series
+
+    labels_series = pd.Series(labels, name='labels')
+
+
+    merged_df = pd.concat([new_df, labels_series], axis=1)
+
+
+    return merged_df
     
 
 # DO NOT CHANGE THE FOLLOWING LINE
