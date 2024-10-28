@@ -2,6 +2,7 @@ import clustering as cl
 import pandas as pd
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 
 
 """
@@ -69,6 +70,23 @@ numerical_df = LA_data_cleaned.select_dtypes(include=np.number)
 numerical_df = numerical_df.drop('zip_code', axis=1, errors='ignore')
 numerical_df['property_url'] = LA_data_cleaned['property_url']
 
+def remove_outliers_iqr(df, column):
+  """Removes outliers from a pandas DataFrame column using the IQR method."""
+  Q1 = df[column].quantile(0.25)
+  Q3 = df[column].quantile(0.75)
+  IQR = Q3 - Q1
+  lower_bound = Q1 - 1.5 * IQR
+  upper_bound = Q3 + 1.5 * IQR
+  df_filtered = df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
+  return df_filtered
+
+
+for column in numerical_df.select_dtypes(include=np.number).columns:
+  numerical_df = remove_outliers_iqr(numerical_df, column)
+
+# pre processing done
+
+
 columns_of_choice = ['price_per_sqft', 'list_price']
 
 def euclidean_distance(point1, point2):
@@ -85,6 +103,8 @@ def silhouette_coefficient(df):
     """
     Calculate the Silhouette Coefficient for each point in the dataset, ignoring outliers.
     """
+
+    # second to last column is url, and the lat column is the label of the cluster
     features = df.iloc[:, :-2]  # All columns except the last one
     labels = df.iloc[:, -1]     # The last column
 
@@ -125,25 +145,6 @@ def silhouette_coefficient(df):
     return pd.Series(silhouette_scores, index=df.index)
 
 
-
-def remove_outliers_iqr(df, column):
-  """Removes outliers from a pandas DataFrame column using the IQR method."""
-  Q1 = df[column].quantile(0.25)
-  Q3 = df[column].quantile(0.75)
-  IQR = Q3 - Q1
-  lower_bound = Q1 - 1.5 * IQR
-  upper_bound = Q3 + 1.5 * IQR
-  df_filtered = df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
-  return df_filtered
-
-
-for column in numerical_df.select_dtypes(include=np.number).columns:
-  numerical_df = remove_outliers_iqr(numerical_df, column)
-
-numerical_df
-
-
-
 from sklearn.preprocessing import MinMaxScaler
 
 scaler = MinMaxScaler()
@@ -155,4 +156,206 @@ normalized_df['property_url'] = numerical_df['property_url'].values
 normalized_df
 
 withlabels = cl.dbscan(normalized_df, columns_of_choice, eps=0.05, min_samples=5)
-withlabels
+
+
+pd.set_option('display.max_columns', 40)
+pd.set_option('display.min_rows', 800)  # <-add this!
+pd.set_option('display.max_rows', 800)
+pd.set_option('display.width', 10000)
+pd.set_option('display.max_colwidth', None)
+
+def getSilhoetteScoresForEachCluster(df):
+  silhoette_labels = silhouette_coefficient(df)
+
+  withlabelsSilhoetteScores = df.copy()
+  merged_with_silhoette = pd.concat([withlabelsSilhoetteScores, pd.DataFrame({'silhoette_labels': silhoette_labels})], axis=1)
+
+  average_silhouette_scores = merged_with_silhoette.groupby('labels')['silhoette_labels'].mean()
+
+  print(average_silhouette_scores)
+
+
+print()
+print('\033[1m'+"initial testing grouping: price per sqft and list price. Sillhoette coefficients are shown. these were graphed"+'\033[0m')
+#attempting to cluster for price people willing to pay for value of sqft
+
+
+getSilhoetteScoresForEachCluster(withlabels)
+
+# This following code inverses the scaling
+normalized_data_for_inverse = withlabels[['price_per_sqft', 'list_price']]
+
+original_data_inverse = scaler.inverse_transform(normalized_data_for_inverse)
+
+unnormalized_df_inverse = pd.DataFrame(original_data_inverse, columns=['price_per_sqft', 'list_price'])
+
+withlabels[['price_per_sqft', 'list_price']] = unnormalized_df_inverse[['price_per_sqft', 'list_price']]
+
+print(withlabels)
+
+
+def plot_scatter_with_labels(df, col1, col2):
+  """Plots a scatterplot with color-coded points based on labels."""
+
+  colors = {
+      -1: 'grey',
+      0: 'red',
+      1: 'blue',
+      2: 'green',
+      3: 'orange',
+      4: 'purple',
+      5: 'brown',
+      6: 'pink',
+      7: 'yellow',
+      8: 'cyan',
+      9: 'magenta'
+      # Add more colors as needed
+  }
+
+  plt.figure(figsize=(8, 6))
+
+  for label in df['labels'].unique():
+      subset = df[df['labels'] == label]
+      plt.scatter(subset[col1], subset[col2],
+                  c=colors.get(label, 'black'), label=f'Label: {label}')
+
+  plt.xlabel(col1)
+  plt.ylabel(col2)
+  plt.title('Scatter Plot with Labels as Colors (DBSCAN)')
+  plt.legend()
+  plt.show()
+
+
+plot_scatter_with_labels(withlabels, columns_of_choice[0], columns_of_choice[1])
+
+
+testdataSource = pd.read_csv('testdata.csv') 
+
+print()
+print('\033[1m'+"test grouping: two columns from testing. Note that the silhoette coefficients are printed for each cluster"+'\033[0m')
+
+columns_of_choiceTWO = ['x1', 'x2']
+
+testdata = testdataSource[columns_of_choiceTWO]
+
+withlabelstest = cl.dbscan(testdata, columns_of_choiceTWO, eps=0.05, min_samples=5)
+
+plot_scatter_with_labels(withlabelstest, columns_of_choiceTWO[0], columns_of_choiceTWO[1])
+
+# tested dbscan on testdata as well, using x1 and x2. 
+getSilhoetteScoresForEachCluster(withlabelstest)
+
+
+# now trying with three points for more than 2 dimensions
+print()
+
+print('\033[1m'+"test grouping: three columns from testing. Note that the silhoette coefficients are printed for each cluster"+'\033[0m')
+
+columns_of_choiceThree = ['x1', 'x2', 'x3']
+
+testdata = testdataSource[columns_of_choiceThree]
+
+withlabelstest = cl.dbscan(testdata, columns_of_choiceThree, eps=0.05, min_samples=5)
+
+print(withlabelstest)
+getSilhoetteScoresForEachCluster(withlabelstest)
+
+##
+
+
+
+def createAndPrintClusters(numerical_df, columns_of_choice, eps, min_samples):
+  # copying the code above: must pass in a numerical df, and a columns of choice array
+  scaler = MinMaxScaler()
+
+  normalized_data = scaler.fit_transform(numerical_df[columns_of_choice])
+
+  normalized_df = pd.DataFrame(normalized_data, columns=columns_of_choice)
+  normalized_df['property_url'] = numerical_df['property_url'].values
+  normalized_df
+
+  withlabels = cl.dbscan(normalized_df, columns_of_choice, eps=eps, min_samples=min_samples)
+
+  # print silheotte scores for each cluster
+  getSilhoetteScoresForEachCluster(withlabels)
+
+  # This following code inverses the scaling
+  normalized_data_for_inverse = withlabels[columns_of_choice]
+
+  original_data_inverse = scaler.inverse_transform(normalized_data_for_inverse)
+
+  unnormalized_df_inverse = pd.DataFrame(original_data_inverse, columns=columns_of_choice)
+
+  withlabels[columns_of_choice] = unnormalized_df_inverse[columns_of_choice]
+
+  # undo normalization and print out all points with the grouping it is in as well as the link 
+  print(withlabels)
+
+
+
+
+
+
+# now for the one that also graphs in case we do only have two columns
+
+def createAndPrintAndGraphClusters(numerical_df, columns_of_choice, eps, min_samples):
+  # copying the code above: must pass in a numerical df, and a columns of choice array
+  scaler = MinMaxScaler()
+
+  normalized_data = scaler.fit_transform(numerical_df[columns_of_choice])
+
+  normalized_df = pd.DataFrame(normalized_data, columns=columns_of_choice)
+  normalized_df['property_url'] = numerical_df['property_url'].values
+  normalized_df
+
+  withlabels = cl.dbscan(normalized_df, columns_of_choice, eps=eps, min_samples=min_samples)
+
+  # print silheotte scores for each cluster
+  getSilhoetteScoresForEachCluster(withlabels)
+
+  # This following code inverses the scaling
+  normalized_data_for_inverse = withlabels[columns_of_choice]
+
+  original_data_inverse = scaler.inverse_transform(normalized_data_for_inverse)
+
+  unnormalized_df_inverse = pd.DataFrame(original_data_inverse, columns=columns_of_choice)
+
+  withlabels[columns_of_choice] = unnormalized_df_inverse[columns_of_choice]
+
+  plot_scatter_with_labels(withlabels, columns_of_choice[0], columns_of_choice[1])
+
+  # undo normalization and print out all points with the grouping it is in as well as the link 
+  print(withlabels)
+
+'''
+      columns are ['Unnamed: 0', 'beds', 'Total Baths', 'sqft', 'year_built',
+       'days_on_mls', 'list_price', 'sold_price', 'estimated_value',
+       'lot_sqft', 'price_per_sqft', 'latitude', 'longitude', 'stories',
+       'hoa_fee', 'parking_garage', 'property_url']
+  
+
+  '''''
+
+print("")
+print('\033[1m'+"first grouping: columns are days on mls, list price, and estimated value"+'\033[0m')
+createAndPrintClusters(numerical_df, ['days_on_mls', 'list_price', 'estimated_value'], 0.07, 4) 
+#attempting to cluster for demand
+
+print("")
+print('\033[1m'+"second grouping: columns are total baths, sqft, beds"+'\033[0m')
+createAndPrintClusters(numerical_df, ['Total Baths', 'sqft', 'beds'], 0.07, 4) 
+#attempting to cluster for spaciousness for size of family or party 
+
+
+
+print("")
+print('\033[1m'+"third grouping: columns are latitude and longitude"+'\033[0m')
+createAndPrintAndGraphClusters(numerical_df, ['latitude', 'longitude'], 0.05, 5) 
+#attempting to cluster for place
+
+
+
+print("")
+print('\033[1m'+"fourth grouping: latitude, longitude, and estimated value"+'\033[0m')
+createAndPrintClusters(numerical_df, ['latitude', 'longitude', 'estimated_value'], 0.05, 5) 
+#attempting to cluster for value of region

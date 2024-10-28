@@ -20,7 +20,7 @@ def main(fname, k=5, width=256, height=256, location=TOP, redraw=True):
         im.thumbnail((width,height))
         data = im.getdata()
         # calculate clusters: which pixels are the most similar, and what is the mean value of each cluster
-        centers = clustering.lloyds(data, k, [0,1,2], n=20)
+        centers = clustering.kmeans(data, k, [0,1,2], centers=None, n=20, eps=None)
         if not redraw:
             # Show cluster centers as color palette
             for i,c in enumerate(centers):
