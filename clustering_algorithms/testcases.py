@@ -64,6 +64,7 @@ def lloyds_testcase(data, n, visualize=True):
         if visualize:
             plot(data, centers, 3, 4, scale=(0,1))
         centers = clustering.kmeans(data, 2, [3,4], centers=centers, n=1)
+        print(centers)
         if visualize:
             plot(data, centers, 3, 4, scale=(0,1))
         show_centers(centers)
@@ -98,7 +99,8 @@ def lloyds_testcase(data, n, visualize=True):
             plot(data, centers, "x1", "x2", scale=(0,1))
         show_centers(centers)
     elif n == 7:
-        centers = clustering.kmeans(data, 6, ["x1","x2", 3, "x4"], n=10)
+        centers = clustering.kmeans(data, 6, ["x1","x2", "x3", "x4"], n=10)
+
         show_centers(centers)
     elif n == 8:
         centers = clustering.kmeans(data, 2, ["x1","x2"], n=5)

@@ -338,24 +338,94 @@ def createAndPrintAndGraphClusters(numerical_df, columns_of_choice, eps, min_sam
 
 print("")
 print('\033[1m'+"first grouping: columns are days on mls, list price, and estimated value"+'\033[0m')
-createAndPrintClusters(numerical_df, ['days_on_mls', 'list_price', 'estimated_value'], 0.07, 4) 
+createAndPrintClusters(numerical_df, ['days_on_mls', 'list_price', 'estimated_value'], 0.05, 5) 
 #attempting to cluster for demand
 
 print("")
 print('\033[1m'+"second grouping: columns are total baths, sqft, beds"+'\033[0m')
-createAndPrintClusters(numerical_df, ['Total Baths', 'sqft', 'beds'], 0.07, 4) 
+createAndPrintClusters(numerical_df, ['Total Baths', 'sqft', 'beds'], 0.1, 10) 
 #attempting to cluster for spaciousness for size of family or party 
 
 
 
 print("")
 print('\033[1m'+"third grouping: columns are latitude and longitude"+'\033[0m')
-createAndPrintAndGraphClusters(numerical_df, ['latitude', 'longitude'], 0.05, 5) 
+createAndPrintAndGraphClusters(numerical_df, ['latitude', 'longitude'], 0.04, 7) 
 #attempting to cluster for place
 
 
 
 print("")
 print('\033[1m'+"fourth grouping: latitude, longitude, and estimated value"+'\033[0m')
-createAndPrintClusters(numerical_df, ['latitude', 'longitude', 'estimated_value'], 0.05, 5) 
+createAndPrintClusters(numerical_df, ['latitude', 'longitude', 'estimated_value'], 0.2, 7) 
 #attempting to cluster for value of region
+
+
+
+
+
+
+
+########
+'''
+kmeans
+'''
+
+# need to assign each row to a cluster in the df
+def assign_clusters_to_df(df, columns, clusters):
+  
+  new_df = df.copy()
+  labels = []
+
+  for _, row in df.iterrows():
+    point = [row[col] for col in columns]
+    distances = [euclidean_distance(point, cluster) for cluster in clusters]
+    nearest_cluster = distances.index(min(distances))
+    labels.append(nearest_cluster)
+
+  new_df['label'] = labels
+  return new_df
+
+
+
+import matplotlib.pyplot as plt
+
+def scatter_plot_df(df):
+
+  x = df.iloc[:, 0]
+  y = df.iloc[:, 1]
+  color_label = df.iloc[:, -1]
+
+  plt.scatter(x, y, c=color_label, cmap='viridis')
+  plt.xlabel(df.columns[0])
+  plt.ylabel(df.columns[1])
+  plt.title('Scatter Plot using kmeans')
+  plt.show()
+
+
+columns_of_choice_withURL = ['price_per_sqft', 'days_on_mls', 'property_url'];
+columns_of_choice = ['price_per_sqft', 'days_on_mls'];
+numerical_df = numerical_df[columns_of_choice_withURL]
+
+from sklearn.preprocessing import MinMaxScaler
+
+scaler = MinMaxScaler()
+
+normalized_data = scaler.fit_transform(numerical_df[columns_of_choice])
+
+normalized_df = pd.DataFrame(normalized_data, columns=columns_of_choice)
+normalized_df['property_url'] = numerical_df['property_url'].values
+
+
+
+
+clusters = cl.kmeanswithlabels(normalized_df, 3, ['price_per_sqft', 'days_on_mls'], n=100)
+
+
+
+normalized_df = assign_clusters_to_df(normalized_df, ['price_per_sqft', 'days_on_mls'], clusters)
+
+
+scatter_plot_df(normalized_df)
+
+
