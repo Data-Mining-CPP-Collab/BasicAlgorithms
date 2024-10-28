@@ -211,24 +211,3 @@ def kmedoids(data, k, distance, centers=None, n=None, eps=None):
         centers = new_centers
     
     return centers
-
-# Sample datasets for testing
-# data1 = [
-#     [1, 2], [2, 3], [3, 4], [10, 10], [11, 11], [12, 12]
-# ]  # Expected: 2 clusters around [1, 2] and [10, 10] or similar
-
-# data2 = [
-#     [5, 5], [5, 6], [6, 5], [6, 6], [25, 25], [26, 26], [25, 26], [26, 25]
-# ]  # Expected: 2 clusters around [5,5] and [25,25] or similar
-
-# # Running k-medoids on data1 with k=2
-# centers1 = kmedoids(data1, k=2, distance=euclidean_distance)
-# print("Test Case 1 - Data1 Centers:", centers1)
-
-# # Running k-medoids on data2 with k=2
-# centers2 = kmedoids(data2, k=2, distance=euclidean_distance)
-# print("Test Case 2 - Data2 Centers:", centers2)
-
-# # Running k-medoids on data1 with k=3
-# centers3 = kmedoids(data1, k=3, distance=euclidean_distance)
-# print("Test Case 3 - Data1 Centers (k=3):", centers3)
