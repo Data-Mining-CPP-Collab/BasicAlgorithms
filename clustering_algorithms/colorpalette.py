@@ -18,7 +18,7 @@ def main(fname, k=5, width=256, height=256, location=TOP, redraw=True):
     with Image.open(fname) as im:
         # resize, preserving aspect ratio
         im.thumbnail((width,height))
-        data = im.getdata()
+        data = list(im.getdata())
         # calculate clusters: which pixels are the most similar, and what is the mean value of each cluster
         centers = clustering.kmeans(data, k, [0,1,2], centers=None, n=20, eps=None)
         if not redraw:
