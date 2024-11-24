@@ -1,44 +1,110 @@
 import math
 import itertools
+from itertools import combinations
+
 
 # DO NOT CHANGE THE FOLLOWING LINE
 def apriori(itemsets, threshold):
-    # Helper function that calculates the support of an itemset
-    def support_count(itemset, transactions):
-        """Calculate the support for an itemset as the proportion of transactions that contain this itemset."""
-        return sum(1 for trans in transactions if itemset <= trans) / len(transactions)
+    # DO NOT CHANGE THE PRECEDING LINE
 
-    # Initial candidates from single items in transactions
-    candidates = {frozenset([item]) for trans in itemsets for item in trans}
-    support = {itemset: support_count(itemset, itemsets) for itemset in candidates}
-    # Filtering candidates by support threshold
-    frequent = {itemset for itemset, sup in support.items() if sup >= threshold / 100}
+    def calculate_support(itemset, transactions):
+        # we need to get the support here, fairly straight forward
+        count = sum(1 for transaction in transactions if itemset.issubset(transaction))
+        return count / len(transactions)
 
-    all_frequent = set(frequent)  # To store all levels of frequent itemsets
-    k = 2  # Start checking for itemsets of size 2
-    while True:
-        # Generate new candidates from combinations of the frequent itemsets
-        new_candidates = set(frozenset(i.union(j)) for i in frequent for j in frequent if len(i.union(j)) == k)
-        if not new_candidates:
-            break
-        support_new = {itemset: support_count(itemset, itemsets) for itemset in new_candidates}
-        support.update(support_new)
-        current_frequent = {itemset for itemset, sup in support_new.items() if sup >= threshold / 100}
-        if not current_frequent:
-            break
-        frequent = current_frequent
-        all_frequent.update(frequent)
+    def generate_candidates(prev_frequent_itemsets, k):
+        # then we generate candidates, here is the method with the k value
+        items = {item for itemset in prev_frequent_itemsets for item in itemset}
+        return [set(comb) for comb in combinations(items, k)]
+
+    # create the transaction set using the itemsets parameter
+    transactions = [set(transaction) for transaction in itemsets]
+    # here is what we will return
+    frequent_itemsets = []
+
+    # Generate 1-itemsets
+    candidates = [{item} for transaction in transactions for item in transaction]
+    # the next line creates the list of candidates and uses a map of set to antoehr set 
+    candidates = list(map(set, set(map(frozenset, candidates))))  
+    k = 1
+
+    # here is the main loop 
+    while candidates:
+        # Calculate support for all the candidates
+        supports = [(itemset, calculate_support(itemset, transactions)) for itemset in candidates]
+        # and then we filter by support threshold
+        current_frequent_itemsets = [(itemset, support) for itemset, support in supports if support >= threshold]
+        # Append to the return 
+        frequent_itemsets.extend(current_frequent_itemsets)
+
+        # Generate next set
+        candidates = generate_candidates([itemset for itemset, _ in current_frequent_itemsets], k + 1)
         k += 1
 
-    # Format the result as a list of pairs (itemset, support_percentage)
-    return [(set(itemset), round(sup * 100, 2)) for itemset, sup in support.items() if itemset in all_frequent]
+    # returning 
+    return frequent_itemsets
 
 # DO NOT CHANGE THE FOLLOWING LINE
 def association_rules(itemsets, frequent_itemsets, metric, metric_threshold):
-    # DO NOT CHANGE THE PRECEDING LINE
-    
-    # Should return a list of triples: condition, effect, metric value 
-    # Each entry (c,e,m) represents a rule c => e, with the matric value m
-    # Rules should only be included if m is greater than the given threshold.    
-    # e.g. [(set(condition),set(effect),0.45), ...]
-    return []
+    rules = []
+
+    # convert frequent_itemsets to a dictionary for quick lookup
+    # the dict has the item and its support in key value pairs for faster lookup
+    frequent_dict = {frozenset(item): support for item, support in frequent_itemsets}
+
+    for itemset, support_AB in frequent_itemsets:
+        itemset = frozenset(itemset)
+
+        # generate all possible not empty proper subsets, which are gonna be the antecedents
+        # the subset != itemset ensures that there is an antecedent here, and thus an actual rule is made
+        subsets = [frozenset(subset) for subset in powerset(itemset) if subset and subset != itemset]
+
+        for antecedent in subsets:
+            consequence = itemset - antecedent
+            if not consequence:
+                continue
+
+            #get the supports for a and B.
+            support_A = frequent_dict[antecedent]
+            support_B = frequent_dict[consequence]
+
+            # Calculate metrics. The ones we didnt talk about were read about and implemented
+            confidence = support_AB / support_A if support_A > 0 else 0
+            lift = confidence / support_B if support_B > 0 else 0
+            kulczynski = 0.5 * (confidence + support_AB / support_B) if support_B > 0 else 0
+            cosine = support_AB / (support_A * support_B)**0.5 if support_A > 0 and support_B > 0 else 0
+
+            # get the selected metric value with this
+            metrics = {
+                "confidence": confidence,
+                "lift": lift,
+                "kulczynski": kulczynski,
+                "cosine": cosine,
+            }
+
+            if metric == "max":
+                # Use the maximum metric value
+                max_metric = max(metrics.values())
+                if max_metric > metric_threshold:
+                    rules.append((antecedent, consequence, max_metric))
+            elif metric == "all":
+                # Include rules for all metrics above the threshold
+                for metric_name, value in metrics.items():
+                    if value > metric_threshold:
+                        rules.append((antecedent, consequence, value))
+            else:
+                # Specific metric
+                metric_value = metrics.get(metric, None)
+                if metric_value is not None and metric_value > metric_threshold:
+                    rules.append((antecedent, consequence, metric_value))
+
+    return rules
+
+def powerset(iterable):
+    """
+    Returns all possible subsets of an iterable as a list of tuples
+    Using this code with the library
+    """
+    from itertools import chain, combinations
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
