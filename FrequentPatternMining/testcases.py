@@ -84,8 +84,8 @@ def apriori_testcase(data, letters, n):
     elif n == 5:
         common = patterns.apriori(data, 0.35)
         print("Should find several frequent itemsets with 2 items each")
-        # show_itemsets(common)
-        write_itemsets_to_csv(common, "./FrequentPatternMining/test_cases_dummy_data/test_case_find_patterns.csv")
+        show_itemsets(common)
+        #write_itemsets_to_csv(common, "./FrequentPatternMining/test_cases_dummy_data/test_case_find_patterns.csv")
         # write_itemsets_to_csv(common, "./FrequentPatternMining/test_cases_supermarket/test_case_find_patterns.csv")
     elif n == 6:
         common = patterns.apriori(data, 0.35)
