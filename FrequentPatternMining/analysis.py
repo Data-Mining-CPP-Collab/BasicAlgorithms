@@ -75,6 +75,7 @@ def run_apriori_with_rules(
 LA_data_cleaned = pd.read_csv('LA_data_cleanedOCTOBER.csv')
 
 # 1. Agent Name with City
+print()
 print("Agent Name with City")
 run_apriori_with_rules(
     df=LA_data_cleaned,
@@ -85,6 +86,7 @@ run_apriori_with_rules(
 )
 
 # 2. Sqft with City
+print()
 print("Sqft with City")
 LA_data_cleaned = classify_column_into_categories(LA_data_cleaned, "sqft")
 run_apriori_with_rules(
@@ -96,6 +98,7 @@ run_apriori_with_rules(
 )
 
 # 3. City with School District
+print()
 print("City with School District")
 run_apriori_with_rules(
     df=LA_data_cleaned,
@@ -106,6 +109,7 @@ run_apriori_with_rules(
 )
 
 # 4. Bath, Bed, with Style
+print()
 print("Bath, Bed, with Style")
 LA_data_cleaned = append_column_name_to_entries(LA_data_cleaned, "Total Baths")
 LA_data_cleaned = append_column_name_to_entries(LA_data_cleaned, "beds")
@@ -115,4 +119,55 @@ run_apriori_with_rules(
     metric="confidence",
     threshold_support=0.1,
     threshold_confidence=0.1
+)
+
+# 5. sold price with sqft
+print()
+print("categorized sold price with categorized sqft")
+LA_data_cleaned = classify_column_into_categories(LA_data_cleaned, "sold_price")
+LA_data_cleaned = append_column_name_to_entries(LA_data_cleaned, "sold_price_classified")
+LA_data_cleaned = append_column_name_to_entries(LA_data_cleaned, "sqft_classified")
+
+run_apriori_with_rules(
+    df=LA_data_cleaned,
+    columns=["sqft_classified_labeled", "sold_price_classified_labeled"],
+    metric="confidence",
+    threshold_support=0.1,
+    threshold_confidence=0.1
+)
+
+# 6. zip code with sqft
+print()
+print("zip code with categorized sqft")
+
+run_apriori_with_rules(
+    df=LA_data_cleaned,
+    columns=["sqft_classified_labeled", "zip_code"],
+    metric="confidence",
+    threshold_support=0.001,
+    threshold_confidence=0.01
+)
+
+# 6. zip code with categorized sale price
+print()
+print("zip code with categorized sale price")
+
+run_apriori_with_rules(
+    df=LA_data_cleaned,
+    columns=["sold_price_classified_labeled", "zip_code"],
+    metric="confidence",
+    threshold_support=0.01,
+    threshold_confidence=0.40
+)
+
+# 6. zip code with type of home
+print()
+print("zip code with type of home")
+
+run_apriori_with_rules(
+    df=LA_data_cleaned,
+    columns=["style", "zip_code"],
+    metric="confidence",
+    threshold_support=0.01,
+    threshold_confidence=0.10
 )
