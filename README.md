@@ -8,6 +8,8 @@ This repository contains basic implementations of several data mining algorithms
 - K-Means
 - K-Medoids
 - DBSCAN
+- Apriori
+- Association Rules
 
 Each algorithm includes:
 - A clear explanation of the technique.
