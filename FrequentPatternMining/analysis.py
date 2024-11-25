@@ -1,22 +1,19 @@
 import patterns
 import pandas as pd
 import numpy as np
-import math
-import matplotlib.pyplot as plt
 import testcases
 
-LA_data_cleaned = pd.read_csv('LA_data_cleanedOCTOBER.csv') 
+# ---------------------
+# Helper Functions
+# ---------------------
 
 def classify_column_into_categories(df, column):
     """
     Converts a numeric continuous column into classifier categories ('lowest', 'low', 'medium', 'high', 'highest').
     """
-
     categories = ['lowest', 'low', 'medium', 'high', 'highest']
-    
-    # Compute quantiles (20th, 40th, 60th, 80th percentiles)
     quantiles = df[column].quantile([0.2, 0.4, 0.6, 0.8]).values
-    
+
     def classify(value):
         if value <= quantiles[0]:
             return 'lowest'
@@ -28,91 +25,94 @@ def classify_column_into_categories(df, column):
             return 'high'
         else:
             return 'highest'
-    
-    # Apply the classification function to the column
-    classified_column = df[column].apply(classify)
-    
-    # Return the DataFrame with the new column
-    df[f"{column}_classified"] = classified_column
+
+    df[f"{column}_classified"] = df[column].apply(classify)
     return df
 
 def prepare_data_for_apriori(df: pd.DataFrame, columns: list) -> list:
     """
     Filters the DataFrame based on the specified columns and prepares the data 
     for apriori and frequent itemset algorithms.
-    Returns:
-    - list: A list of lists, where each inner list represents a transaction.
     """
-    # Validate input columns
     invalid_columns = [col for col in columns if col not in df.columns]
     if invalid_columns:
         raise ValueError(f"Invalid column names: {', '.join(invalid_columns)}")
-
-    # Filter the DataFrame to include only specified columns
-    filtered_df = df[columns]
-
-    # Convert the DataFrame to a list of lists
-    transactions = filtered_df.applymap(str).values.tolist()
-
-    return transactions
+    return df[columns].map(str).values.tolist()
 
 def append_column_name_to_entries(df, column):
-    
+    """
+    Appends column names to entries for clarity in apriori analysis.
+    """
     df[f"{column}_labeled"] = df[column].astype(str) + f" ({column})"
     return df
 
+def run_apriori_with_rules(
+    df: pd.DataFrame,
+    columns: list,
+    metric: str,
+    threshold_support: float,
+    threshold_confidence: float,
+):
+    """
+    Helper function to run apriori and generate association rules.
+    """
+    print(f"Running apriori on columns: {columns}")
+    print()
+
+    transaction_data = prepare_data_for_apriori(df, columns)
+    frequent_itemsets = patterns.apriori(transaction_data, threshold=threshold_support)
+    rules = patterns.association_rules(transaction_data, frequent_itemsets, metric, threshold_confidence)
+
+    print(f"Association Rules (Metric: {metric}, Threshold: {threshold_confidence}):")
+    testcases.show_rules(rules)
+    testcases.show_itemsets(frequent_itemsets)
+
+# ---------------------
+# Main Analysis
 # ---------------------
 
-print("agent name with city")
-print()
-agentAndCity = prepare_data_for_apriori(LA_data_cleaned, ["agent_name", "city"])
+# Load and clean the data
+LA_data_cleaned = pd.read_csv('LA_data_cleanedOCTOBER.csv')
 
-common = patterns.apriori(agentAndCity, 0.001)
-rules = patterns.association_rules(agentAndCity, common, "confidence", 0.1)
-print("Should find many association rules")
-testcases.show_rules(rules)
-testcases.show_itemsets(common)
+# 1. Agent Name with City
+print("Agent Name with City")
+run_apriori_with_rules(
+    df=LA_data_cleaned,
+    columns=["agent_name", "city"],
+    metric="confidence",
+    threshold_support=0.001,
+    threshold_confidence=0.1
+)
 
-# ----------------------
-
-print("sqft with city")
-print()
+# 2. Sqft with City
+print("Sqft with City")
 LA_data_cleaned = classify_column_into_categories(LA_data_cleaned, "sqft")
-#previous line will create new column called sqft_classified
+run_apriori_with_rules(
+    df=LA_data_cleaned,
+    columns=["sqft_classified", "city"],
+    metric="confidence",
+    threshold_support=0.01,
+    threshold_confidence=0.01
+)
 
-sqftAndCity = prepare_data_for_apriori(LA_data_cleaned, ["sqft_classified", "city"])
+# 3. City with School District
+print("City with School District")
+run_apriori_with_rules(
+    df=LA_data_cleaned,
+    columns=["city", "nearby_schools"],
+    metric="confidence",
+    threshold_support=0.01,
+    threshold_confidence=0.01
+)
 
-common = patterns.apriori(sqftAndCity, 0.01)
-rules = patterns.association_rules(sqftAndCity, common, "confidence", 0.01)
-print("Should find many association rules")
-testcases.show_rules(rules)
-
-# ----------------------
-
-print("city with school district")
-print()
-#previous line will create new column called sqft_classified
-
-cityAndSchool = prepare_data_for_apriori(LA_data_cleaned, ["city", "nearby_schools"])
-
-common = patterns.apriori(cityAndSchool, 0.01)
-rules = patterns.association_rules(cityAndSchool, common, "confidence", 0.01)
-print("Should find many association rules")
-testcases.show_rules(rules)
-
-# ----------------------
-
+# 4. Bath, Bed, with Style
+print("Bath, Bed, with Style")
 LA_data_cleaned = append_column_name_to_entries(LA_data_cleaned, "Total Baths")
 LA_data_cleaned = append_column_name_to_entries(LA_data_cleaned, "beds")
-
-
-print("bath, bed, with style")
-print()
-#previous line will create new column called sqft_classified
-
-bathBedStyle = prepare_data_for_apriori(LA_data_cleaned, ["beds_labeled", "Total Baths_labeled", "style"])
-
-common = patterns.apriori(bathBedStyle, 0.1)
-rules = patterns.association_rules(bathBedStyle, common, "confidence", 0.1)
-print("Should find many association rules")
-testcases.show_rules(rules)
+run_apriori_with_rules(
+    df=LA_data_cleaned,
+    columns=["beds_labeled", "Total Baths_labeled", "style"],
+    metric="confidence",
+    threshold_support=0.1,
+    threshold_confidence=0.1
+)
