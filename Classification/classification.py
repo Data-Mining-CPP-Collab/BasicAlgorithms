@@ -1,76 +1,129 @@
 import numpy
 import math
+from collections import Counter
 
+def calculate_information_gain(column_values, ys, current_entropy):
+    """Calculate information gain for a potential split"""
+    # Group by values
+    groups = {}
+    for i, value in enumerate(column_values):
+        if value not in groups:
+            groups[value] = []
+        groups[value].append(ys[i])
+        
+    # Calculate weighted entropy after split
+    weighted_entropy = 0
+    total = len(ys)
+    
+    for group in groups.values():
+        weight = len(group) / total
+        weighted_entropy += weight * entropy(group)
+        
+    # calculate the information gain by subtracting the weighted entropy from the current entropy
+    return current_entropy - weighted_entropy
 
-# These are suggested helper functions
-# You can structure your code differently, but if you have
-# trouble getting started, this might be a good starting point
-
-# Create the decision tree recursively
+# Create the decision tree recursively using Hunt's Algorithm
 def make_node(previous_ys, xs, ys, columns):
-    # WARNING: lists are passed by reference in python
-    # If you are planning to remove items, it's better 
-    # to create a copy first
+    """
+    Implementation of Hunt's Algorithm for decision tree construction
+    
+    Args:
+        previous_ys: Class labels from parent node (for majority class when no samples)
+        xs: Feature values
+        ys: Class labels
+        columns: Available columns for splitting
+    """
+    # Make copy of columns to avoid modifying the original
     columns = columns[:]
+    
+    # Hunt's Algorithm Base Cases:
+    
+    # Case 1: No samples left
+    if not xs or not ys:
+        return {"type": "class", "class": majority(previous_ys)}
+    
+    # Case 2: All samples belong to same class
+    if same(ys):
+        return {"type": "class", "class": ys[0]}
+    
+    # Case 3: No attributes left but still samples from different classes
+    if not columns:
+        return {"type": "class", "class": majority(ys)}
 
-    # First, check the three termination criteria:
+    # Hunt's Algorithm Recursive Case:
+    # 1. Select best attribute to split on
+    current_entropy = entropy(ys)
+    best_gain = -1
+    best_column = None
     
-    # If there are no rows (xs and ys are empty): 
-    #      Return a node that classifies as the majority class of the parent
+    for col in columns:
+        # Get values for this column
+        column_values = [row[col] for row in xs]
+        
+        # Calculate information gain
+        gain = calculate_information_gain(column_values, ys, current_entropy)
+        
+        if gain > best_gain:
+            best_gain = gain
+            best_column = col
     
-    # If all ys are the same:
-    #      Return a node that classifies as that class 
+    # If no split gives any gain, return majority class
+    if best_gain <= 0:
+        return {"type": "class", "class": majority(ys)}
+        
+    # 2. Create node that splits on best attribute
+    node = {
+        "type": "split",
+        "split": best_column,
+        "children": {}
+    }
     
-    # If there are no more columns left:
-    #      Return a node that classifies as the majority class of the ys
-
-
-    # Otherwise:
-    # Compute the entropy of the current ys 
-    # For each column:
-    #     Perform a split on the values in that column 
-    #     Calculate the entropy of each of the pieces
-    #     Compute the overall entropy as the weighted sum 
-    #     The gain of the column is the difference of the entropy before
-    #        the split, and this new overall entropy 
-    # Select the column with the highest gain, then:
-    # Split the data along the column values and recursively call 
-    #    make_node for each piece 
-    # Create a split-node that splits on this column, and has the result 
-    #    of the recursive calls as children.
+    # 3. Partition data based on best attribute values
+    value_groups = {}
+    for i, row in enumerate(xs):
+        value = row[best_column]
+        if value not in value_groups:
+            value_groups[value] = {"xs": [], "ys": []}
+        # Remove the split column from the row
+        new_row = row[:best_column] + row[best_column+1:]
+        value_groups[value]["xs"].append(new_row)
+        value_groups[value]["ys"].append(ys[i])
     
-    # Note: This is a placeholder return value
-    return {"type": "class", "class": majority(ys)}
-
+    # 4. Recursively apply Hunt's Algorithm to each partition
+    new_columns = [c for c in columns if c != best_column]
+    for value, group in value_groups.items():
+        node["children"][value] = make_node(ys, group["xs"], group["ys"], new_columns)
     
-    
+    return node
 
 # Determine if all values in a list are the same 
 # Useful for the second basecase above
 def same(values):
+    """Determine if all values in a list are the same"""
     if not values: return True
     # if there are values:
     # pick the first, check if all other are the same 
+    first = values[0]
+    return all(v == first for v in values)
 
-
-    
 # Determine how often each value shows up 
 # in a list; this is useful for the entropy
 # but also to determine which values is the 
 # most common
 def counts(values):
-
-    # placeholder return value 
-    return {}
+    """Count occurrences of each value in the list"""
+    return Counter(values)
    
-
 # Return the most common value from a list 
 # Useful for base cases 1 and 3 above.
 def majority(values):
-
-    # placeholder return value
-    return 0
-    
+    """Return the most common value from a list"""
+    if not values:
+        return None
+    # count the values
+    count_dict = counts(values)
+    # return the most common value
+    return max(count_dict.items(), key=lambda x: x[1])[0]
     
 # Calculate the entropy of a set of values 
 # First count how often each value shows up 
@@ -79,48 +132,97 @@ def majority(values):
 # The entropy is the negation of the sum of p*log2(p) 
 # for all these probabilities.
 def entropy(values):
-
-    # placeholder return value
-    return 0
+    """Calculate entropy of a list of values"""
+    if not values:
+        return 0
+    # count the values 
+    counts_dict = counts(values)
+    # calculate the length of the list
+    total = len(values)
+    # calculate the probabilities
+    probabilities = [count/total for count in counts_dict.values()]
+    # return the entropy
+    return -sum(p * math.log2(p) for p in probabilities)
 
 # This is the main decision tree class 
 # DO NOT CHANGE THE FOLLOWING LINE
 class DecisionTree:
 # DO NOT CHANGE THE PRECEDING LINE
+    #Constructor to initialize the decision tree.
     def __init__(self, tree={}):
-        self.tree = tree
-    
+        self.tree = tree #Holds the decision tree struction.
+        self.majority = None #Stores the majority class from the training data.       
     # DO NOT CHANGE THE FOLLOWING LINE    
     def fit(self, x, y):
     # DO NOT CHANGE THE PRECEDING LINE
-    
+        """
+        Trains the decision tree using the training data (x) and labels (y).
+        
+        args:
+            x: 2D list of features (rows are instances, columns are attributes).
+            y: List of labels corresponding to each instance in x.
+        """
+        # Calculate the majority class from the training labels `y`.      
         self.majority = majority(y)
+        # Build the decision tree by creating the root node and recursively splitting the data.       
         self.tree = make_node(y, x, y, list(range(len(x[0]))))
         
     # DO NOT CHANGE THE FOLLOWING LINE    
     def predict(self, x):
-    # DO NOT CHANGE THE PRECEDING LINE    
+    # DO NOT CHANGE THE PRECEDING LINE 
+        """
+        Predicts the class for a set of instances `x` using the decision tree.
+
+        Args:
+            x: List of instances, where each instance is a list of attribute values.
+
+        Returns:
+            List: Class predictions for each instance in `x`. Returns `None` if the tree is not built.
+        """
+        # Check if the tree exists. If the tree is empty (not trained), return None.   
         if not self.tree:
             return None
 
-        # To classify using the tree:
-        # Start with the root as the "current" node
-        # As long as the current node is an interior node (type == "split"):
-        #    get the value of the attribute the split is performed on 
-        #    select the child corresponding to that value as the new current node 
-        
-        # NOTE: In some cases, your tree may not have a child for a particular value 
-        #       In that case, return the majority value (self.majority) from the training set 
-        
-        # IMPORTANT: You have to perform this classification *for each* element in x 
-        
-        # placeholder return value
-        # Note that the result is a list of predictions, one for each x-value
-        return [self.majority for _ in x]
+        def traverse(node, instance):
+            """
+            Helper function to traverse the decision tree recursively and classify an instance.
+
+            Args:
+                node (dict): The current node in the decision tree.
+                instance (list): The attributes of the instance being classified.
+
+            Returns:
+                The predicted class if a leaf node is reached, or the majority class if no
+                appropriate child node exists for an attribute value.
+            """
+            # Traverse the decision tree based on the instance's attributes.
+            # Start with the root as the "current" node.
+            # Continue traversing as long as the node is a 'split' node.
+            while node['type'] == 'split':
+                # Get the attribute index the node splits on.
+                attribute_index = node['split'] 
+                # Get the value of that attribute for the current instance.
+                attribute_value = instance[attribute_index] 
+                # If there's no child for the attribute value, return the majority class.
+                if attribute_value not in node['children']:
+                    return self.majority
+                # Otherwise, move the relevant child node based on the attribute value.
+                node = node['children'][attribute_value]
+            # When a leaf node is reached, return its class label.
+            return node['class']
+        # Apply the traverse function to each instance in x and return the predictions as a list.
+        return [traverse(self.tree, instance) for instance in x]  
     
     # DO NOT CHANGE THE FOLLOWING LINE
     def to_dict(self):
     # DO NOT CHANGE THE PRECEDING LINE
         # change this if you store the tree in a different format
+        """
+        Converts the decision tree into a dictionary representation.
+
+        Returns:
+            dict: A dictionary representation of the decision tree.
+        """
+        # This method returns the internal tree structure as a dictionary.
         return self.tree
        
