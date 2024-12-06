@@ -25,74 +25,77 @@ def calculate_information_gain(column_values, ys, current_entropy):
 # Create the decision tree recursively using Hunt's Algorithm
 def make_node(previous_ys, xs, ys, columns):
     """
-    Implementation of Hunt's Algorithm for decision tree construction
+    Implementation of Hunt's Algorithm for decision tree construction.
     
     Args:
-        previous_ys: Class labels from parent node (for majority class when no samples)
-        xs: Feature values
-        ys: Class labels
-        columns: Available columns for splitting
+        previous_ys: Class labels from parent node (for majority class when no samples).
+        xs: Feature values.
+        ys: Class labels.
+        columns: Available columns for splitting.
+
+    Returns:
+        A dictionary representing the decision tree node.
     """
-    # Make copy of columns to avoid modifying the original
-    columns = columns[:]
+    # print(f"Recursive call - Dataset rows (xs): {xs}")
+    # print(f"Dataset dimensions: {len(xs)} rows, {len(xs[0]) if xs else 0} columns")
+    # print(f"Columns available: {columns}")
     
-    # Hunt's Algorithm Base Cases:
-    
+    # Hunt's Algorithm Base Casess:
     # Case 1: No samples left
     if not xs or not ys:
         return {"type": "class", "class": majority(previous_ys)}
-    
-    # Case 2: All samples belong to same class
+    # Case 2: All samples belong to same class  
     if same(ys):
         return {"type": "class", "class": ys[0]}
-    
     # Case 3: No attributes left but still samples from different classes
+    columns = [col for col in columns if col < len(xs[0])]
     if not columns:
         return {"type": "class", "class": majority(ys)}
-
+    
     # Hunt's Algorithm Recursive Case:
     # 1. Select best attribute to split on
+    # Calculate current entropy
     current_entropy = entropy(ys)
     best_gain = -1
     best_column = None
     
+    # Find the best column to split
     for col in columns:
         # Get values for this column
         column_values = [row[col] for row in xs]
-        
         # Calculate information gain
         gain = calculate_information_gain(column_values, ys, current_entropy)
-        
         if gain > best_gain:
             best_gain = gain
             best_column = col
     
-    # If no split gives any gain, return majority class
+    # If no gain, return a leaf node with the majority class
     if best_gain <= 0:
         return {"type": "class", "class": majority(ys)}
-        
-    # 2. Create node that splits on best attribute
-    node = {
-        "type": "split",
-        "split": best_column,
-        "children": {}
-    }
     
-    # 3. Partition data based on best attribute values
+    # 2. Create node that splits on best attribute
+    node = {"type": "split", "split": best_column, "children": {}}
     value_groups = {}
+    
+    # 3. Partition data based on best attribute values (best column)
     for i, row in enumerate(xs):
         value = row[best_column]
         if value not in value_groups:
             value_groups[value] = {"xs": [], "ys": []}
-        # Remove the split column from the row
-        new_row = row[:best_column] + row[best_column+1:]
+        new_row = row[:best_column] + row[best_column + 1:]
         value_groups[value]["xs"].append(new_row)
         value_groups[value]["ys"].append(ys[i])
     
     # 4. Recursively apply Hunt's Algorithm to each partition
     new_columns = [c for c in columns if c != best_column]
+    if not new_columns:
+        return {"type": "class", "class": majority(ys)}
+    # Create child nodes
     for value, group in value_groups.items():
-        node["children"][value] = make_node(ys, group["xs"], group["ys"], new_columns)
+        if not group["xs"]:  # Handle empty partitions
+            node["children"][value] = {"type": "class", "class": majority(ys)}
+        else:
+            node["children"][value] = make_node(ys, group["xs"], group["ys"], new_columns)
     
     return node
 
