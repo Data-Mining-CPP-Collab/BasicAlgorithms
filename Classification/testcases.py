@@ -43,9 +43,12 @@ def plot(title, xs, ys, predys, mapping=CATMAP):
         x2s[m] = []
         colors[m] = []
     for x,y,py in zip(xs,ys,predys):
-        
-        x1s[y].append(mapping[x[0]]+random.gauss(0,0.05))
-        x2s[y].append(mapping[x[1]]+random.gauss(0,0.05))
+        x1_val = mapping[x[0]] + random.gauss(0, 0.05)  # Always use the first attribute
+        x2_val = (
+            mapping[x[1]] + random.gauss(0, 0.05) if len(x) > 1 else random.gauss(0, 0.05)
+        )  # Use the second attribute if available, otherwise random noise
+        x1s[y].append(x1_val)
+        x2s[y].append(x2_val)
         colors[y].append(COLORS[py])
     for m in markers:
         plt.scatter(x1s[m], x2s[m], c=colors[m], marker=markers[m])
@@ -62,7 +65,20 @@ def get_columns(rows, columns, single=False):
         return [row[columns[0]] for row in rows]
     return [[row[c] for c in columns] for row in rows]
     
-CLASSIFICATION_TESTS = ["Predict class from two categories (1+2)", "Predict class from two categories (3+4)", "Predict class from all four categories", "Predict class from three categories (2-4)", "Predict class from two binary attributes (1+2)", "Predict class from three binary attributes (3+4)", "Predict class from wrong categorical attributes", "Predict class from wrong binary attributes"]
+CLASSIFICATION_TESTS = [
+    "Predict class from two categories (1+2)", 
+    "Predict class from two categories (3+4)", 
+    "Predict class from all four categories", 
+    "Predict class from three categories (2-4)", 
+    "Predict class from two binary attributes (1+2)", 
+    "Predict class from three binary attributes (3+4)", 
+    "Predict class from wrong categorical attributes", 
+    "Predict class from wrong binary attributes",
+    "Predict class from mixed attributes (2 cat + 2 bin)",
+    "Predict class using single categorical attribute",
+    "Predict class using single binary attribute",
+    "Predict class from all attributes"
+]
 
 MODELS = {"Decision Tree": classification.DecisionTree, "Naive Bayes": NaiveBayes}
     
@@ -101,7 +117,23 @@ def classification_testcase(training, validation, n, visualize=True, model="Deci
         target = ["cls4"]
         mapping = CATMAP
     elif n == 8:
-        columns = ["bin1", "bin2", "bin3", "bin4", "bin5"]
+        # New test: Mixed attributes
+        columns = ["cat1", "cat2", "bin1", "bin2"]
+        target = ["cls3"]
+        visualize = False
+    elif n == 9:
+        # New test: Single categorical attribute, using random noise on the y-axis to spread out data points
+        columns = ["cat1"]
+        target = ["cls3"]
+        mapping = CATMAP
+    elif n == 10:
+        # New test: Single binary attribute, same as test case 9
+        columns = ["bin1"]
+        target = ["cls4"]
+        mapping = BINMAP
+    elif n == 11:
+        # New test: All attributes
+        columns = ["cat1", "cat2", "cat3", "cat4", "bin1", "bin2", "bin3", "bin4", "bin5"]
         target = ["cls3"]
         visualize = False
         
