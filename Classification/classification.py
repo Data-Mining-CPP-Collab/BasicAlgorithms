@@ -2,6 +2,54 @@ import numpy
 import math
 from collections import Counter
 
+# Determine if all values in a list are the same 
+# Useful for the second basecase above
+def same(values):
+    """Determine if all values in a list are the same"""
+    if not values: return True
+    # if there are values:
+    # pick the first, check if all other are the same 
+    first = values[0]
+    return all(v == first for v in values)
+
+# Determine how often each value shows up 
+# in a list; this is useful for the entropy
+# but also to determine which values is the 
+# most common
+def counts(values):
+    """Count occurrences of each value in the list"""
+    return Counter(values)
+   
+# Return the most common value from a list 
+# Useful for base cases 1 and 3 above.
+def majority(values):
+    """Return the most common value from a list"""
+    if not values:
+        return None
+    # count the values
+    count_dict = counts(values)
+    # return the most common value
+    return max(count_dict.items(), key=lambda x: x[1])[0]
+
+# Calculate the entropy of a set of values 
+# First count how often each value shows up 
+# When you divide this value by the total number 
+# of elements, you get the probability for that element 
+# The entropy is the negation of the sum of p*log2(p) 
+# for all these probabilities.
+def entropy(values):
+    """Calculate entropy of a list of values"""
+    if not values:
+        return 0
+    # count the values 
+    counts_dict = counts(values)
+    # calculate the length of the list
+    total = len(values)
+    # calculate the probabilities
+    probabilities = [count/total for count in counts_dict.values()]
+    # return the entropy
+    return -sum(p * math.log2(p) for p in probabilities)
+
 def calculate_information_gain(column_values, ys, current_entropy):
     """Calculate information gain for a potential split"""
     # Group by values
@@ -98,54 +146,6 @@ def make_node(previous_ys, xs, ys, columns):
             node["children"][value] = make_node(ys, group["xs"], group["ys"], new_columns)
     
     return node
-
-# Determine if all values in a list are the same 
-# Useful for the second basecase above
-def same(values):
-    """Determine if all values in a list are the same"""
-    if not values: return True
-    # if there are values:
-    # pick the first, check if all other are the same 
-    first = values[0]
-    return all(v == first for v in values)
-
-# Determine how often each value shows up 
-# in a list; this is useful for the entropy
-# but also to determine which values is the 
-# most common
-def counts(values):
-    """Count occurrences of each value in the list"""
-    return Counter(values)
-   
-# Return the most common value from a list 
-# Useful for base cases 1 and 3 above.
-def majority(values):
-    """Return the most common value from a list"""
-    if not values:
-        return None
-    # count the values
-    count_dict = counts(values)
-    # return the most common value
-    return max(count_dict.items(), key=lambda x: x[1])[0]
-    
-# Calculate the entropy of a set of values 
-# First count how often each value shows up 
-# When you divide this value by the total number 
-# of elements, you get the probability for that element 
-# The entropy is the negation of the sum of p*log2(p) 
-# for all these probabilities.
-def entropy(values):
-    """Calculate entropy of a list of values"""
-    if not values:
-        return 0
-    # count the values 
-    counts_dict = counts(values)
-    # calculate the length of the list
-    total = len(values)
-    # calculate the probabilities
-    probabilities = [count/total for count in counts_dict.values()]
-    # return the entropy
-    return -sum(p * math.log2(p) for p in probabilities)
 
 # This is the main decision tree class 
 # DO NOT CHANGE THE FOLLOWING LINE
