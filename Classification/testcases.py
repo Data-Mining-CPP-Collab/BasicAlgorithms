@@ -103,8 +103,47 @@ def classification_testcase(training, validation, n, visualize=True, model="Deci
         columns = ["cat3", "cat4"]
         target = ["cls3"]
         mapping = CATMAP
-    # ... (keep existing test cases)
+    elif n == 2:
+        columns = ["cat1", "cat2", "cat3", "cat4"]
+        target = ["cls3"]
+        visualize = False
+    elif n == 3:
+        columns = ["cat2", "cat3", "cat4"]
+        target = ["cls3"]
+        visualize = False
+    elif n == 4:
+        columns = ["bin1", "bin2"]
+        target = ["cls4"]
+        mapping = BINMAP
+    elif n == 5:
+        columns = ["bin3", "bin4", "bin5"]
+        target = ["cls4"]
+        visualize = False
+    elif n == 6:
+        columns = ["bin1", "bin2", "bin3", "bin4", "bin5"]
+        target = ["cls4"]
+        visualize = False
+    elif n == 7:
+        columns = ["cat1", "cat2"]
+        target = ["cls4"]
+        mapping = CATMAP
+    elif n == 8:
+        # New test: Mixed attributes
+        columns = ["cat1", "cat2", "bin1", "bin2"]
+        target = ["cls3"]
+        visualize = False
+    elif n == 9:
+        # New test: Single categorical attribute, using random noise on the y-axis to spread out data points
+        columns = ["cat1"]
+        target = ["cls3"]
+        mapping = CATMAP
+    elif n == 10:
+        # New test: Single binary attribute, same as test case 9
+        columns = ["bin1"]
+        target = ["cls4"]
+        mapping = BINMAP
     elif n == 11:
+        # New test: All attributes
         columns = ["cat1", "cat2", "cat3", "cat4", "bin1", "bin2", "bin3", "bin4", "bin5"]
         target = ["cls3"]
         visualize = False
