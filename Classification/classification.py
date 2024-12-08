@@ -1,126 +1,149 @@
-import numpy
+from collections import Counter
 import math
 
-
-# These are suggested helper functions
-# You can structure your code differently, but if you have
-# trouble getting started, this might be a good starting point
-
-# Create the decision tree recursively
-def make_node(previous_ys, xs, ys, columns):
-    # WARNING: lists are passed by reference in python
-    # If you are planning to remove items, it's better 
-    # to create a copy first
-    columns = columns[:]
-
-    # First, check the three termination criteria:
-    
-    # If there are no rows (xs and ys are empty): 
-    #      Return a node that classifies as the majority class of the parent
-    
-    # If all ys are the same:
-    #      Return a node that classifies as that class 
-    
-    # If there are no more columns left:
-    #      Return a node that classifies as the majority class of the ys
-
-
-    # Otherwise:
-    # Compute the entropy of the current ys 
-    # For each column:
-    #     Perform a split on the values in that column 
-    #     Calculate the entropy of each of the pieces
-    #     Compute the overall entropy as the weighted sum 
-    #     The gain of the column is the difference of the entropy before
-    #        the split, and this new overall entropy 
-    # Select the column with the highest gain, then:
-    # Split the data along the column values and recursively call 
-    #    make_node for each piece 
-    # Create a split-node that splits on this column, and has the result 
-    #    of the recursive calls as children.
-    
-    # Note: This is a placeholder return value
-    return {"type": "class", "class": majority(ys)}
-
-    
-    
-
-# Determine if all values in a list are the same 
-# Useful for the second basecase above
-def same(values):
-    if not values: return True
-    # if there are values:
-    # pick the first, check if all other are the same 
-
-
-    
-# Determine how often each value shows up 
-# in a list; this is useful for the entropy
-# but also to determine which values is the 
-# most common
-def counts(values):
-
-    # placeholder return value 
-    return {}
-   
-
-# Return the most common value from a list 
-# Useful for base cases 1 and 3 above.
-def majority(values):
-
-    # placeholder return value
-    return 0
-    
-    
-# Calculate the entropy of a set of values 
-# First count how often each value shows up 
-# When you divide this value by the total number 
-# of elements, you get the probability for that element 
-# The entropy is the negation of the sum of p*log2(p) 
-# for all these probabilities.
-def entropy(values):
-
-    # placeholder return value
-    return 0
-
-# This is the main decision tree class 
-# DO NOT CHANGE THE FOLLOWING LINE
 class DecisionTree:
-# DO NOT CHANGE THE PRECEDING LINE
-    def __init__(self, tree={}):
-        self.tree = tree
-    
-    # DO NOT CHANGE THE FOLLOWING LINE    
-    def fit(self, x, y):
-    # DO NOT CHANGE THE PRECEDING LINE
-    
-        self.majority = majority(y)
-        self.tree = make_node(y, x, y, list(range(len(x[0]))))
+    def __init__(self, max_depth=None):
+        """
+        Initialize the decision tree.
         
-    # DO NOT CHANGE THE FOLLOWING LINE    
-    def predict(self, x):
-    # DO NOT CHANGE THE PRECEDING LINE    
-        if not self.tree:
-            return None
+        Args:
+            max_depth (int, optional): Maximum depth for tree pruning. Default is None (no pruning).
+        """
+        self.tree = None
+        self.max_depth = max_depth
+        self.majority_class = None
 
-        # To classify using the tree:
-        # Start with the root as the "current" node
-        # As long as the current node is an interior node (type == "split"):
-        #    get the value of the attribute the split is performed on 
-        #    select the child corresponding to that value as the new current node 
+    def _entropy(self, y):
+        """Calculate entropy of label array y."""
+        if not y:
+            return 0
+        counter = Counter(y)
+        entropy = 0.0
+        for count in counter.values():
+            p = count / len(y)
+            entropy -= p * math.log2(p)
+        return entropy
+
+    def _information_gain(self, x_column, y):
+        """Calculate information gain for a specific feature column."""
+        base_entropy = self._entropy(y)
         
-        # NOTE: In some cases, your tree may not have a child for a particular value 
-        #       In that case, return the majority value (self.majority) from the training set 
+        # Calculate weighted entropy of children
+        values = Counter(x_column)
+        weighted_entropy = 0.0
         
-        # IMPORTANT: You have to perform this classification *for each* element in x 
+        for value in values:
+            subset_indices = [i for i, x in enumerate(x_column) if x == value]
+            subset_y = [y[i] for i in subset_indices]
+            weighted_entropy += (len(subset_indices) / len(y)) * self._entropy(subset_y)
+            
+        return base_entropy - weighted_entropy
+
+    def _split_data(self, x, y, split_column):
+        """Split the data based on the values in the split column."""
+        split_dict = {}
+        values = set()
+        # Get all unique values for the split column
+        for instance in x:
+            values.add(instance[split_column])
+            
+        for value in values:
+            indices = [i for i, row in enumerate(x) if row[split_column] == value]
+            split_dict[value] = {
+                'x': [x[i] for i in indices],
+                'y': [y[i] for i in indices]
+            }
+        return split_dict
+
+    def _build_tree(self, x, y, depth=0):
+        """Recursively build the decision tree."""
+        # Base cases
+        if not x or not y:
+            return {"type": "class", "class": self.majority_class}
+            
+        if len(set(y)) == 1:
+            return {"type": "class", "class": y[0]}
         
-        # placeholder return value
-        # Note that the result is a list of predictions, one for each x-value
-        return [self.majority for _ in x]
-    
-    # DO NOT CHANGE THE FOLLOWING LINE
+        if self.max_depth is not None and depth >= self.max_depth:
+            majority_class = max(Counter(y).items(), key=lambda x: x[1])[0]
+            return {"type": "class", "class": majority_class}
+
+        # Find best split
+        n_features = len(x[0])
+        best_gain = -1
+        best_split = 0
+        
+        for i in range(n_features):
+            feature_values = [row[i] for row in x]
+            gain = self._information_gain(feature_values, y)
+            if gain > best_gain:
+                best_gain = gain
+                best_split = i
+
+        # If no information gain, make a leaf node
+        if best_gain <= 0:
+            majority_class = max(Counter(y).items(), key=lambda x: x[1])[0]
+            return {"type": "class", "class": majority_class}
+
+        # Create split node
+        split_data = self._split_data(x, y, best_split)
+        
+        node = {
+            "type": "split",
+            "split": best_split,
+            "children": {}
+        }
+
+        # Recursively build child nodes
+        for value, subset in split_data.items():
+            if subset['x']:
+                node["children"][value] = self._build_tree(subset['x'], subset['y'], depth + 1)
+            else:
+                node["children"][value] = {"type": "class", "class": self.majority_class}
+
+        return node
+
+    def fit(self, x, y):
+        """
+        Build a decision tree from training data.
+        
+        Args:
+            x: List of training instances
+            y: List of training labels
+        """
+        if not x or not y:
+            raise ValueError("Empty training data")
+            
+        # Store majority class for handling unseen values
+        self.majority_class = max(Counter(y).items(), key=lambda x: x[1])[0]
+        self.tree = self._build_tree(x, y)
+
+    def _predict_one(self, x):
+        """Predict class for a single instance."""
+        if not self.tree:
+            raise ValueError("Model not fitted. Call fit before predict.")
+            
+        node = self.tree
+        while node["type"] == "split":
+            value = x[node["split"]]
+            if value not in node["children"]:
+                return self.majority_class
+            node = node["children"][value]
+        return node["class"]
+
+    def predict(self, x):
+        """
+        Predict classes for multiple instances.
+        
+        Args:
+            x: List of instances to classify
+        Returns:
+            List of predicted classes
+        """
+        return [self._predict_one(instance) for instance in x]
+
     def to_dict(self):
-    # DO NOT CHANGE THE PRECEDING LINE
-        # change this if you store the tree in a different format
+        """Return the tree structure as a dictionary."""
+        if not self.tree:
+            return {"type": "class", "class": self.majority_class}
         return self.tree
-       
