@@ -42,13 +42,23 @@ def plot(title, xs, ys, predys, mapping=CATMAP):
         x1s[m] = []
         x2s[m] = []
         colors[m] = []
+    
     for x,y,py in zip(xs,ys,predys):
-        
         x1s[y].append(mapping[x[0]]+random.gauss(0,0.05))
-        x2s[y].append(mapping[x[1]]+random.gauss(0,0.05))
+        # If we only have one feature, use random noise for the y-axis
+        if len(x) == 1:
+            x2s[y].append(random.gauss(0,0.2))  # Larger spread for better visualization
+        else:
+            x2s[y].append(mapping[x[1]]+random.gauss(0,0.05))
         colors[y].append(COLORS[py])
+    
     for m in markers:
         plt.scatter(x1s[m], x2s[m], c=colors[m], marker=markers[m])
+    
+    # Add labels
+    plt.xlabel("Feature 1")
+    plt.ylabel("Feature 2" if len(xs[0]) > 1 else "Random jitter")
+    plt.title(title)
     plt.show()
 
 def evaluate(prefix, y, predy):
@@ -62,10 +72,27 @@ def get_columns(rows, columns, single=False):
         return [row[columns[0]] for row in rows]
     return [[row[c] for c in columns] for row in rows]
     
-CLASSIFICATION_TESTS = ["Predict class from two categories (1+2)", "Predict class from two categories (3+4)", "Predict class from all four categories", "Predict class from three categories (2-4)", "Predict class from two binary attributes (1+2)", "Predict class from three binary attributes (3+4)", "Predict class from wrong categorical attributes", "Predict class from wrong binary attributes"]
+
 
 MODELS = {"Decision Tree": classification.DecisionTree, "Naive Bayes": NaiveBayes}
     
+CLASSIFICATION_TESTS = [
+    "Predict class from two categories (1+2)", 
+    "Predict class from two categories (3+4)", 
+    "Predict class from all four categories", 
+    "Predict class from three categories (2-4)", 
+    "Predict class from two binary attributes (1+2)", 
+    "Predict class from three binary attributes (3+4)", 
+    "Predict class from wrong categorical attributes", 
+    "Predict class from wrong binary attributes",
+    "Predict class from mixed attributes (2 cat + 2 bin)",
+    "Predict class using single categorical attribute",
+    "Predict class using single binary attribute",
+    "Predict class from all attributes",
+    "Predict class from two categories (3+4) with pruning, max depth was now one"  # New test case
+]
+
+# Update the classification_testcase function by adding the new case:
 def classification_testcase(training, validation, n, visualize=True, model="Decision Tree"):
     print("running test:", CLASSIFICATION_TESTS[n])
     if n == 0:
@@ -101,9 +128,46 @@ def classification_testcase(training, validation, n, visualize=True, model="Deci
         target = ["cls4"]
         mapping = CATMAP
     elif n == 8:
-        columns = ["bin1", "bin2", "bin3", "bin4", "bin5"]
+        # New test: Mixed attributes
+        columns = ["cat1", "cat2", "bin1", "bin2"]
         target = ["cls3"]
         visualize = False
+    elif n == 9:
+        # New test: Single categorical attribute, using random noise on the y-axis to spread out data points
+        columns = ["cat1"]
+        target = ["cls3"]
+        mapping = CATMAP
+    elif n == 10:
+        # New test: Single binary attribute, same as test case 9
+        columns = ["bin1"]
+        target = ["cls4"]
+        mapping = BINMAP
+    elif n == 11:
+        # New test: All attributes
+        columns = ["cat1", "cat2", "cat3", "cat4", "bin1", "bin2", "bin3", "bin4", "bin5"]
+        target = ["cls3"]
+        visualize = False
+    elif n == 12:  # New pruned test case
+        # we just do everything here and return 
+        columns = ["cat3", "cat4"]
+        target = ["cls3"]
+        mapping = CATMAP
+        m = classification.DecisionTree(max_depth=1)  # Create tree with pruning
+        tx = get_columns(training, columns)
+        ty = get_columns(training, target, single=True)
+        m.fit(tx, ty)
+        print(json.dumps(m.to_dict(), indent=4))
+        predty = m.predict(tx)
+        evaluate(model + " training ", ty, predty)
+        vx = get_columns(validation, columns)
+        vy = get_columns(validation, target, single=True)
+        predvy = m.predict(vx)
+        evaluate(model + " validation ", vy, predvy)
+        
+        if visualize:
+            plot(model + " training set (pruned), depth is only 1", tx, ty, predty, mapping)
+            plot(model + " validation set (pruned), depth is only 1", vx, vy, predvy, mapping)
+        return  # Return early since we handled everything in this branch
         
     m = MODELS[model]()
     tx = get_columns(training, columns)
