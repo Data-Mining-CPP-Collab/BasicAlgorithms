@@ -179,9 +179,11 @@ def calculate_performance(prefix, y, predy):
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
         
-        print(f"\nClass: {cls}")
-        print(f"Precision: {precision:.2f}")
-        print(f"Recall: {recall:.2f}")
+        # only print nonzeros
+        if (recall != 0 or precision != 0):
+            print(f"\nClass: {cls}")
+            print(f"Precision: {precision:.2f}")
+            print(f"Recall: {recall:.2f}")
 
 def classification_run(training, validation, columns, target, model="Decision Tree", max_depth=6):
 
@@ -323,7 +325,7 @@ print('----------- THE FOLLOWING IS THE HOUSEHUNTERS APPLICATION ---------------
 ##########################################################################################
 print()
 
-features1 = ['sqft_classified', 'estimated_value_classified','beds_classified', 'year_built_classified']
+features1 = ['sqft_classified', 'estimated_value_classified','beds_classified', 'year_built_classified', 'style']
 yvariable1 = ['city']
 
 m1 = classification_run(training, validation, features1, 
@@ -331,14 +333,15 @@ m1 = classification_run(training, validation, features1,
                                               model="Decision Tree", 
                                               max_depth=3)
 # this will output all the scores we want
-print(json.dumps(m1.to_dict(), indent=4))
+#print(json.dumps(m1.to_dict(), indent=4))
 
 # Format the array as a 2D array expects 2D input
 test_array1 = np.array([
                     'high_sqft(1860.0-2520.0)', 
                     'medium_estimated_value(903000.0-1223000.0)', 
                     'high_beds(3.0-4.0)',
-                    'highest_year_built(1984.0-2024.0)']
+                    'highest_year_built(1984.0-2024.0)',
+                    'SINGLE_FAMILY']
                      ).reshape(1, -1)
 # Get prediction
 print()
@@ -354,7 +357,7 @@ matches = filter_properties(
     LA_data_cleaned_classified, 
     test_array1[0], 
     features1,
-    ['property_url']
+    ['property_url', 'city']
 )
 
 # Print results
@@ -367,22 +370,23 @@ print('----------- THE FOLLOWING IS THE TIME ON MARKET ESTIMATE APPLICATION ----
 ###################################################################################################
 print()
 
-features2 = ['sqft_classified', 'estimated_value_classified', 'beds_classified', 'city']
+features2 = ['sqft_classified', 'estimated_value_classified', 'beds_classified', 'city', 'style']
 yvariable2 = ['days_on_mls_classified']
 
 m2 = classification_run(training, validation, features2, 
                                               yvariable2, 
                                               model="Decision Tree",
-                                              max_depth=2)
+                                              max_depth=4)
 # this will output all the scores we want
-print(json.dumps(m2.to_dict(), indent=4))
+#print(json.dumps(m2.to_dict(), indent=4))
 
 # Format the array as a 2D array expects 2D input
 test_array2 = np.array([
                     'medium_sqft(1480.0-1860.0)', 
                     'medium_estimated_value(903000.0-1223000.0)', 
                     'high_beds(3.0-4.0)',
-                    'North Hollywood'
+                    'North Hollywood',
+                    'SINGLE_FAMILY',
                     ]
                      ).reshape(1, -1)
 
@@ -398,7 +402,7 @@ matches = filter_properties(
     LA_data_cleaned_classified, 
     test_array2[0], 
     features2,
-    ['property_url']
+    ['property_url', 'days_on_mls']
 )
 
 # Print results
