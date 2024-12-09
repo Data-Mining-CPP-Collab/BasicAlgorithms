@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import testcases
 import random
+import time
 
 # convert columns into categorized ones like last time - DONE
 
@@ -71,22 +72,35 @@ LA_data_cleaned_classified = classify_multiple_columns(LA_data_cleaned, columns_
 
 # the three way split 70 15 15
 
+def split_dataset(df, training, testing, validation):
+    """
+    Splits the dataset into training, testing, and validation sets (70%, 15%, 15%).
+
+    Parameters:
+    - df: The input dataframe.
+    - training: List to hold training data.
+    - testing: List to hold testing data.
+    - validation: List to hold validation data.
+
+    Returns:
+    - None (modifies the lists in-place).
+    """
+    random.seed(time.time())  # Seed randomness with the current time
+
+    for i, row in df.iterrows():
+        rand_value = random.random()
+        if rand_value > 0.85:
+            validation.append(row)
+        elif rand_value > 0.7:
+            testing.append(row)
+        else:
+            training.append(row)
+
+# we will split the data into training, testing, and validation
 training = []
 testing = []
 validation = []
-
-# well get rid of this
-random.seed(1000)
-
-# LA data rows are added into training, testing, and validation
-for i,row in LA_data_cleaned_classified.iterrows():
-    if random.random() > 0.85:
-        validation.append(row)
-    elif random.random() > 0.7:
-       testing.append(row)
-    else:
-        training.append(row)
-# done with the three waay split 
+split_dataset(LA_data_cleaned_classified, training, testing, validation)
 
 # models dictionary
 MODELS = {"Decision Tree": classification.DecisionTree, "Naive Bayes": testcases.NaiveBayes}
