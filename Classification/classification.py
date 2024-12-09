@@ -2,13 +2,12 @@ from collections import Counter
 import math
 
 class DecisionTree:
+    
     def __init__(self, max_depth=None):
-        
-        #Initialize the tree
-        
         self.tree = None
         self.max_depth = max_depth
         self.majority_class = None
+
 
     def _entropy(self, y):
         # we calculate the entropy of the label array y
