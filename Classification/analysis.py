@@ -6,26 +6,11 @@ import random
 import time
 import json
 
-# convert columns into categorized ones like last time - DONE
-
-# create method to do the 70 15 15 split - DONE
-
-# separate y and x's 
-
-# calculate performace 
-
-# helper method like last time for modular output?
-# classification testcase method 
-
-
-
 # this is from profs code
 def get_columns(rows, columns, single=False):
     if single:
         return [row[columns[0]] for row in rows]
     return [[row[c] for c in columns] for row in rows]
-
-LA_data_cleaned = pd.read_csv('LA_data_cleanedOCTOBER.csv')
 
 def classify_column_into_categories(df, column):
     """
@@ -108,16 +93,6 @@ def classify_multiple_columns(df, columns_to_classify):
     
     return df_copy
 
-
-# we create new columns
-columns_to_classify = ['sqft', 'beds', 'year_built', 'days_on_mls',
-       'list_price', 'sold_price', 'estimated_value',
-       'lot_sqft', 'price_per_sqft', 'latitude',
-       'longitude', 'hoa_fee']  # Replace with your column names
-LA_data_cleaned_classified = classify_multiple_columns(LA_data_cleaned, columns_to_classify)
-
-# we just created more columns in the padas df that are converted from continuous into quantiles
-
 # the three way split 70 15 15
 
 def split_dataset(df, training, testing, validation):
@@ -143,15 +118,6 @@ def split_dataset(df, training, testing, validation):
             testing.append(row)
         else:
             training.append(row)
-
-# we will split the data into training, testing, and validation
-training = []
-testing = []
-validation = []
-split_dataset(LA_data_cleaned_classified, training, testing, validation)
-
-# models dictionary
-MODELS = {"Decision Tree": classification.DecisionTree, "Naive Bayes": testcases.NaiveBayes}
 
 def calculate_performance(prefix, y, predy):
     # Calculate accuracy
@@ -211,6 +177,36 @@ def classification_run(training, validation, columns, target, model="Decision Tr
 
     # also i am going to return m so we can test predictions with data of our own that we want
     return m
+
+def filter_properties(df, feature_values, feature_names, columns_to_return=None):
+   
+    try:
+        # Convert feature_values to list if it's a numpy array
+        if isinstance(feature_values, np.ndarray):
+            feature_values = feature_values.flatten().tolist()
+            
+        # Create filter conditions
+        conditions = True
+        for feature, value in zip(feature_names, feature_values):
+            conditions = conditions & (df[feature] == value)
+            
+        # Apply filters
+        filtered_df = df[conditions]
+        
+        # Select specific columns if requested
+        if columns_to_return:
+            filtered_df = filtered_df[columns_to_return]
+            
+        print(f"Found {len(filtered_df)} matching properties")
+        
+        return filtered_df
+        
+    except KeyError as e:
+        print(f"Error: Column not found in dataframe: {e}")
+        return pd.DataFrame()
+    except Exception as e:
+        print(f"Error occurred while filtering: {e}")
+        return pd.DataFrame()
 
 # these are all the columns, rememeber, many of them were made into quantiles and added to the df
 
@@ -289,121 +285,117 @@ Column: hoa_fee_classified
 --------------------
  """
 
-def filter_properties(df, feature_values, feature_names, columns_to_return=None):
-   
-    try:
-        # Convert feature_values to list if it's a numpy array
-        if isinstance(feature_values, np.ndarray):
-            feature_values = feature_values.flatten().tolist()
-            
-        # Create filter conditions
-        conditions = True
-        for feature, value in zip(feature_names, feature_values):
-            conditions = conditions & (df[feature] == value)
-            
-        # Apply filters
-        filtered_df = df[conditions]
-        
-        # Select specific columns if requested
-        if columns_to_return:
-            filtered_df = filtered_df[columns_to_return]
-            
-        print(f"Found {len(filtered_df)} matching properties")
-        
-        return filtered_df
-        
-    except KeyError as e:
-        print(f"Error: Column not found in dataframe: {e}")
-        return pd.DataFrame()
-    except Exception as e:
-        print(f"Error occurred while filtering: {e}")
-        return pd.DataFrame()
+LA_data_cleaned = pd.read_csv('LA_data_cleanedOCTOBER.csv')
 
-print()
+# we create new columns
+columns_to_classify = ['sqft', 'beds', 'year_built', 'days_on_mls',
+       'list_price', 'sold_price', 'estimated_value',
+       'lot_sqft', 'price_per_sqft', 'latitude',
+       'longitude', 'hoa_fee']  # Replace with your column names
+LA_data_cleaned_classified = classify_multiple_columns(LA_data_cleaned, columns_to_classify)
+
+# we just created more columns in the padas df that are converted from continuous into quantiles
+
+# we will split the data into training, testing, and validation
+training = []
+testing = []
+validation = []
+split_dataset(LA_data_cleaned_classified, training, testing, validation)
+
+# models dictionary
+MODELS = {"Decision Tree": classification.DecisionTree, "Naive Bayes": testcases.NaiveBayes}
+
+
+def run_classification(features, y_variable, model_type, max_depth, test_input_values, training_data, validation_data):
+    """
+    Helper method to create, train, validate a classification model, and make predictions.
+    
+    Parameters:
+    - features: List of feature column names for training the model.
+    - y_variable: Target column name as a list.
+    - model_type: Type of classification model ("Decision Tree", "Bayes", etc.).
+    - max_depth: Maximum depth for the model.
+    - test_input_values: List of feature values for the test input.
+    - training_data: Training dataset.
+    - validation_data: Validation dataset.
+    
+    Returns:
+    - prediction: The prediction result from the model.
+    - matches: DataFrame containing matched properties.
+    """
+    print(f"\n------------------------ RUNNING CLASSIFICATION FOR {model_type} ------------------------\n")
+    
+    # Train the model and calculate performance
+    model = classification_run(training_data, validation_data, features, y_variable, model=model_type, max_depth=max_depth)
+    
+    # Format the test input into a 2D array
+    test_array = np.array(test_input_values).reshape(1, -1)
+    
+    print("\n------------------------ PREDICTION FROM EXAMPLE INPUT --------------------------\n")
+    print("Input values:", test_array)
+    
+    # Get prediction
+    prediction = model.predict(test_array)
+    print(f"Predicted {y_variable[0]}:", prediction[0])
+    
+    # Find matching properties
+    matches = filter_properties(
+        LA_data_cleaned_classified,
+        test_array[0],
+        features,
+        ['property_url', y_variable[0]]  # Adjust columns as needed
+    )
+    
+    print("\nMatching Properties:\n")
+    print(matches.to_string())
+    
+    return prediction, matches
+
+
 ##########################################################################################
 print('----------- THE FOLLOWING IS THE HOUSEHUNTERS APPLICATION -----------------')
 ##########################################################################################
-print()
 
-features1 = ['sqft_classified', 'estimated_value_classified','beds_classified', 'year_built_classified', 'style']
-yvariable1 = ['city']
+features1 = ['sqft_classified', 'estimated_value_classified', 'beds_classified', 'year_built_classified', 'style']
+y_variable1 = ['city']
+test_input_values1 = [
+    'high_sqft(1860.0-2520.0)', 
+    'medium_estimated_value(903000.0-1223000.0)', 
+    'high_beds(3.0-4.0)',
+    'highest_year_built(1984.0-2024.0)',
+    'SINGLE_FAMILY'
+]
 
-m1 = classification_run(training, validation, features1, 
-                                              yvariable1, 
-                                              model="Decision Tree", 
-                                              max_depth=3)
-# this will output all the scores we want
-#print(json.dumps(m1.to_dict(), indent=4))
-
-# Format the array as a 2D array expects 2D input
-test_array1 = np.array([
-                    'high_sqft(1860.0-2520.0)', 
-                    'medium_estimated_value(903000.0-1223000.0)', 
-                    'high_beds(3.0-4.0)',
-                    'highest_year_built(1984.0-2024.0)',
-                    'SINGLE_FAMILY']
-                     ).reshape(1, -1)
-# Get prediction
-print()
-print('------------------------ OUR PREDICTION FROM EXAMPLE INPUT --------------------------')
-print()
-print('the input was', test_array1)
-prediction = m1.predict(test_array1)
-print("Predicted city:", prediction[0])
-
-print("Examples: ")
-# Get matches with specific columns
-matches = filter_properties(
-    LA_data_cleaned_classified, 
-    test_array1[0], 
-    features1,
-    ['property_url', 'city']
+prediction1, matches1 = run_classification(
+    features1, 
+    y_variable1, 
+    model_type="Decision Tree", 
+    max_depth=3, 
+    test_input_values=test_input_values1, 
+    training_data=training, 
+    validation_data=validation
 )
 
-# Print results
-print(matches.to_string())
-
-
-print()
-###################################################################################################
+##########################################################################################
 print('----------- THE FOLLOWING IS THE TIME ON MARKET ESTIMATE APPLICATION -----------------')
-###################################################################################################
-print()
+##########################################################################################
 
 features2 = ['sqft_classified', 'estimated_value_classified', 'beds_classified', 'city', 'style']
-yvariable2 = ['days_on_mls_classified']
+y_variable2 = ['days_on_mls_classified']
+test_input_values2 = [
+    'medium_sqft(1480.0-1860.0)', 
+    'medium_estimated_value(903000.0-1223000.0)', 
+    'high_beds(3.0-4.0)',
+    'North Hollywood',
+    'SINGLE_FAMILY'
+]
 
-m2 = classification_run(training, validation, features2, 
-                                              yvariable2, 
-                                              model="Decision Tree",
-                                              max_depth=4)
-# this will output all the scores we want
-#print(json.dumps(m2.to_dict(), indent=4))
-
-# Format the array as a 2D array expects 2D input
-test_array2 = np.array([
-                    'medium_sqft(1480.0-1860.0)', 
-                    'medium_estimated_value(903000.0-1223000.0)', 
-                    'high_beds(3.0-4.0)',
-                    'North Hollywood',
-                    'SINGLE_FAMILY',
-                    ]
-                     ).reshape(1, -1)
-
-# Get prediction
-print()
-print('------------------------ OUR PREDICTION FROM EXAMPLE INPUT --------------------------')
-print()
-print('the input was', test_array2,)
-prediction2 = m2.predict(test_array2)
-print("Predicted time on market range:", prediction2[0])
-
-matches = filter_properties(
-    LA_data_cleaned_classified, 
-    test_array2[0], 
-    features2,
-    ['property_url', 'days_on_mls']
+prediction2, matches2 = run_classification(
+    features2, 
+    y_variable2, 
+    model_type="Decision Tree", 
+    max_depth=4, 
+    test_input_values=test_input_values2, 
+    training_data=training, 
+    validation_data=validation
 )
-
-# Print results
-print(matches.to_string())
