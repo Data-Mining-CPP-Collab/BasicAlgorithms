@@ -4,7 +4,6 @@ import numpy as np
 import testcases
 import random
 import time
-import json
 
 # this is from profs code
 def get_columns(rows, columns, single=False):
@@ -81,12 +80,7 @@ def classify_multiple_columns(df, columns_to_classify):
             
             # Print the ranges for this column
             if hasattr(df_copy, 'category_ranges') and column in df_copy.category_ranges:
-                #print("Ranges:")
-                #for category, range_val in df_copy.category_ranges[column].items():
-                    #print(f"  {category}: {range_val}")
                 all_ranges[column] = df_copy.category_ranges[column]
-        #else:
-            #print(f"Warning: Column '{column}' not found in dataframe")
     
     # Store all ranges in the dataframe for future reference
     df_copy.all_category_ranges = all_ranges
@@ -94,7 +88,6 @@ def classify_multiple_columns(df, columns_to_classify):
     return df_copy
 
 # the three way split 70 15 15
-
 def split_dataset(df, training, testing, validation):
     """
     Splits the dataset into training, testing, and validation sets (70%, 15%, 15%).
@@ -151,7 +144,7 @@ def calculate_performance(prefix, y, predy):
             print(f"Precision: {precision:.2f}")
             print(f"Recall: {recall:.2f}")
 
-def classification_run(training, validation, columns, target, model="Decision Tree", max_depth=6):
+def test_validate(training, validation, columns, target, model="Decision Tree", max_depth=6):
 
     print()
     print('------------------------ TRAINING PREFORMANCE ---------------------------')
@@ -326,7 +319,7 @@ def run_classification(features, y_variable, model_type, max_depth, test_input_v
     print(f"\n------------------------ RUNNING CLASSIFICATION FOR {model_type} ------------------------\n")
     
     # Train the model and calculate performance
-    model = classification_run(training_data, validation_data, features, y_variable, model=model_type, max_depth=max_depth)
+    model = test_validate(training_data, validation_data, features, y_variable, model=model_type, max_depth=max_depth)
     
     # Format the test input into a 2D array
     test_array = np.array(test_input_values).reshape(1, -1)
@@ -385,9 +378,9 @@ y_variable2 = ['days_on_mls_classified']
 test_input_values2 = [
     'medium_sqft(1480.0-1860.0)', 
     'medium_estimated_value(903000.0-1223000.0)', 
-    'high_beds(3.0-4.0)',
-    'North Hollywood',
-    'SINGLE_FAMILY'
+    'high_beds(3.0-4.0)', 
+    'North Hollywood', 
+    'SINGLE_FAMILY' 
 ]
 
 prediction2, matches2 = run_classification(
